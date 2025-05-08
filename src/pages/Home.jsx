@@ -3,14 +3,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Webcam from "react-webcam";
-import Cropper from "react-cropper"; // For cropping
+import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
-import { rotateImage } from "@/lib/utils"; // Utility for rotating image
+// import { rotateImage } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import CustomPhotoEditor from "./CustomFileEditor";
 
-// Zod schema for form validation
+// Schema
 const userDataSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
   lastName: z.string().min(1, "Last Name is required"),
@@ -23,10 +24,10 @@ const Home = () => {
   const [croppedImage, setCroppedImage] = useState(null);
   const [searchQuery, setSearchQuery] = useState(null);
 
-  const [isCaptured, setIsCaptured] = useState(false);
-  const [rotation, setRotation] = useState(0); // For rotating the image
-  const webcamRef = useRef(null);
-  const cropperRef = useRef(null);
+  // Function to update image state
+  const handleImageUpdate = (newImage) => {
+    setImage(newImage);
+  };
 
   const {
     register,
@@ -36,190 +37,95 @@ const Home = () => {
     resolver: zodResolver(userDataSchema),
   });
 
-  const captureImage = () => {
-    const screenshot = webcamRef.current.getScreenshot();
-    setImage(screenshot);
-    setIsCaptured(true);
-  };
-
-  const handleCrop = () => {
-    if (cropperRef.current) {
-      const cropped = cropperRef.current.getCroppedCanvas().toDataURL();
-      setCroppedImage(cropped);
-    }
-  };
-
-  const handleRotate = () => {
-    if (image) {
-      const rotated = rotateImage(image, rotation + 90);
-      setImage(rotated);
-      setRotation(rotation + 90);
-    }
-  };
-
   const handleSubmitForm = (data) => {
     const formData = {
       ...data,
-      image: croppedImage || image, // Use cropped or original image
+      image: croppedImage || image,
     };
     console.log("Form Data:", formData);
-    // Submit form data to backend (using axios or fetch)
-    // axios.post('/api/submit', formData);
   };
 
   return (
-    <div className="flex flex-col items-center bg-background text-foreground px-[var(--spacing-unit)] py-[var(--spacing-unit)]">
-      {/* Header */}
-      <header className="w-full p-4 bg-primary text-white flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <span className="font-bold text-lg">NOVA AI TECH</span>
-        </div>
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
+      <header className="w-full bg-primary text-white py-4 px-6 rounded-lg shadow mb-10 flex justify-between items-center">
+        <h1 className="text-2xl font-bold tracking-wide">NOVA AI TECH</h1>
+        <div className="flex items-center gap-3">
           <Input
-            value={searchQuery}
+            value={searchQuery || ""}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by Name"
-            className="p-2 border border-gray-300 rounded"
+            className="border-none focus:ring-2 focus:ring-accent w-64"
           />
-          <Button className="bg-accent text-white px-4 py-2 rounded">
+          <Button className="bg-accent hover:bg-accent/90 text-white font-semibold px-5 py-2 rounded">
             Search
           </Button>
         </div>
       </header>
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-10 max-w-6xl mx-auto">
+      <CustomPhotoEditor onSave={handleImageUpdate}/>
 
-      <div className="flex flex-wrap gap-8 w-full max-w-[var(--max-width)] mx-auto">
-        {/* Left Section: Image Capture */}
-        <div className="w-full lg:w-1/2 flex justify-center items-center">
-          <Card className="p-4 shadow-lg w-full max-w-md">
-            {isCaptured ? (
-              <div>
-                <Cropper
-                  ref={cropperRef}
-                  src={image}
-                  style={{ height: 400, width: "100%" }}
-                  aspectRatio={1}
-                  guides={false}
-                />
-                <div className="flex justify-center gap-4 mt-4">
-                  <Button
-                    onClick={handleCrop}
-                    className="bg-primary text-white py-2 px-4 rounded"
-                  >
-                    Crop
-                  </Button>
-                  <Button
-                    onClick={handleRotate}
-                    className="bg-accent text-white py-2 px-4 rounded"
-                  >
-                    Rotate
-                  </Button>
-                  <Button
-                    onClick={() => setIsCaptured(false)}
-                    className="bg-muted text-muted-foreground py-2 px-4 rounded"
-                  >
-                    Retake
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Webcam
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                width="100%"
-                videoConstraints={{ facingMode: "user" }}
+        <Card className="p-6 rounded-2xl shadow-xl">
+          <h2 className="text-2xl font-bold mb-6 text-gray-700">Result / Match Found</h2>
+          <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-5">
+            <div>
+              <Input
+                {...register("firstName")}
+                placeholder="First Name"
+                className="w-full"
               />
-            )}
-            <div className="flex justify-center gap-4 mt-4">
-              {!isCaptured && (
-                <Button
-                  onClick={captureImage}
-                  className="bg-primary text-white py-2 px-4 rounded"
-                >
-                  Capture Photo
-                </Button>
+              {errors.firstName && (
+                <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>
               )}
             </div>
-          </Card>
-        </div>
 
-        {/* Right Section: Form */}
-        <div className="w-full lg:w-1/2">
-          <Card className="p-4 shadow-lg">
-            <h2 className="text-2xl font-semibold mb-4">
-              Result / Match Found
-            </h2>
-            <form onSubmit={handleSubmit(handleSubmitForm)}>
-              <div className="mb-4">
-                <Input
-                  {...register("firstName")}
-                  placeholder="First Name"
-                  className="w-full p-2 mb-2 border border-gray-300 rounded"
-                />
-                {errors.firstName && (
-                  <p className="text-red-500 text-xs">
-                    {errors.firstName.message}
-                  </p>
-                )}
-              </div>
-              <div className="mb-4">
-                <Input
-                  {...register("lastName")}
-                  placeholder="Last Name"
-                  className="w-full p-2 mb-2 border border-gray-300 rounded"
-                />
-                {errors.lastName && (
-                  <p className="text-red-500 text-xs">
-                    {errors.lastName.message}
-                  </p>
-                )}
-              </div>
-              <div className="mb-4">
-                <Input
-                  {...register("address")}
-                  placeholder="Address"
-                  className="w-full p-2 mb-2 border border-gray-300 rounded"
-                />
-              </div>
-              <div className="mb-4">
-                <Input
-                  {...register("additionalInfo")}
-                  placeholder="Additional Info"
-                  className="w-full p-2 mb-2 border border-gray-300 rounded"
-                />
-              </div>
-
-              {/* Preview of the Cropped Image */}
-              {croppedImage && (
-                <div className="mb-4">
-                  <h3 className="font-semibold text-lg">
-                    Cropped Image Preview:
-                  </h3>
-                  <img
-                    src={croppedImage}
-                    alt="Cropped Preview"
-                    className="w-full mt-2 rounded-lg"
-                  />
-                </div>
+            <div>
+              <Input
+                {...register("lastName")}
+                placeholder="Last Name"
+                className="w-full"
+              />
+              {errors.lastName && (
+                <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>
               )}
+            </div>
 
-              <div className="flex gap-4 mt-4">
-                <Button
-                  type="submit"
-                  className="bg-primary text-white py-2 px-4 rounded"
-                >
-                  Save
-                </Button>
-                <Button
-                  type="reset"
-                  className="bg-muted text-muted-foreground py-2 px-4 rounded"
-                >
-                  Clear
-                </Button>
+            <Input
+              {...register("address")}
+              placeholder="Address"
+              className="w-full"
+            />
+
+            <Input
+              {...register("additionalInfo")}
+              placeholder="Additional Info"
+              className="w-full"
+            />
+
+            {croppedImage && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Cropped Image Preview</h3>
+                <img
+                  src={croppedImage}
+                  alt="Preview"
+                  className="rounded-lg border shadow-md max-h-80 object-cover"
+                />
               </div>
-            </form>
-          </Card>
-        </div>
+            )}
+    
+
+            <div className="flex gap-4 pt-6">
+              <Button type="submit" className="bg-primary text-white px-6 py-2 rounded-lg shadow">
+                Save
+              </Button>
+              <Button
+                type="reset"
+                className="bg-muted text-muted-foreground px-6 py-2 rounded-lg"
+              >
+                Clear
+              </Button>
+            </div>
+          </form>
+        </Card>
       </div>
     </div>
   );

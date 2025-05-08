@@ -7,6 +7,9 @@ const App = () => {
   return (
     <div>
    <Home/>
+   <Button>
+    test
+   </Button>
     </div>
   );
 };
